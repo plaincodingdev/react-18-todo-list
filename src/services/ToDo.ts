@@ -26,7 +26,7 @@ class ToDoService {
     return response.data;
   }
 
-  async delteToDo(id: number) {
+  async deleteToDo(id: number) {
     const response = await this.http.delete(`/todos/${id}`);
     return response.data;
   }

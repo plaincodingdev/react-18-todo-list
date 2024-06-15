@@ -3,14 +3,8 @@
 To start the project in developer mode, use the following command in your terminal:
 
 ```bash
-npm install # Install dpendencies
+npm install # Install dependencies
 npm run dev # Start the project in developer mode
-```
-
-Once the application is running, you can access the Swagger UI to test and interact with your API. Open your preferred web browser and navigate to:
-
-```bash
-http://localhost:5173/
 ```
 
 ## Create and Run Docker Image

@@ -16,7 +16,7 @@ export default function ToDoList({ toDos, onLoadToDos }: ToDoListProps) {
   };
 
   const handleRemoveTodo = (toDo: ToDo) => async () => {
-    await ToDoService.delteToDo(toDo.id);
+    await ToDoService.deleteToDo(toDo.id);
     onLoadToDos();
   };
 
