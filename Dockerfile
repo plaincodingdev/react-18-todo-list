@@ -1,8 +1,13 @@
-FROM node:20.11 as build-stage
+FROM node:20.11 AS build-stage
 WORKDIR /app
 COPY package*.json /app/
 RUN npm install
 COPY . /app/
+
+# Set environment variables
+#ENV VITE_API_URL=http://localhost:5277/api
+ENV VITE_API_URL=http://localhost/api
+ENV VITE_PORT=5173
 
 RUN npm run build
 
