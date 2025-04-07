@@ -1,0 +1,343 @@
+---
+title: "Building a Simple ToDo App with React 18, TypeScript, and Docker: A Beginner’s Guide"
+excerpt: "Learn how to create a simple Todo List web application using React 18 and TypeScript. We will cover the basics of setting up a new React project, installing dependencies, creating models and services, and building components to display and manage Todo items."
+date: "Jun 20, 2024"
+author: "Martin"
+readingTime: "20"
+tags: ["React", "TypeScript", "Node.js", "Docker", "Material UI", "REST API"]
+---
+
+## Prerequisites
+
+Before we begin, please make sure you have the following software installed on your system. These tools are essential for developing and running the application we will build:
+
+- **Node.js:** This is the runtime environment required to run JavaScript on the server side. Download it from the [official Node.js website](https://nodejs.org/).
+- **NPM:** Node.js’s package manager, which is used to install libraries like React. It comes bundled with Node.js.
+- **Vite:** A build tool that facilitates scaffolding new projects and running them locally. Install it globally by running `npm install -g create-vite`.
+- **Docker:** Docker is a platform for developing, shipping, and running applications inside containers. Download Docker from Docker's [official site](https://www.docker.com/).
+- **Visual Studio Code:** This is a lightweight but powerful source code editor which runs on your desktop. Download it from Visual Studio Code [official site](https://code.visualstudio.com/).
+- **Source Code:** You can find the source code for this tutorial on [GitHub](https://github.com/plaincodingdev/react-18-todo-list).
+
+## Creating a new React Project
+
+React is a popular JavaScript library for building user interfaces. It allows developers to create reusable UI components and manage the state of the application efficiently.
+
+For this project, we will use Vite to scaffold a new React project with TypeScript. Start by creating a new React project using the following command::
+
+```bash
+npm create vite@latest react-18-todo-list -- --template react-ts
+```
+
+Then navigate to the project directory and install default dependencies:
+
+```bash
+cd react-18-todo-list
+npm install # Install dependencies
+```
+
+## Installing Additional Dependencies
+
+Material UI provides a robust set of components for React. Install it along with other dependencies:
+
+```bash
+npm install @mui/material @emotion/react @emotion/styled
+npm install @fontsource/roboto
+npm install @mui/icons-material
+npm install axios
+```
+
+Include the Roboto font in your main.tsx:
+```js
+import "@fontsource/roboto/300.css";
+import "@fontsource/roboto/400.css";
+import "@fontsource/roboto/500.css";
+import "@fontsource/roboto/700.css";
+```
+
+## Creating Model and Service
+
+Define a Todo model in `src/models/Todo.ts`:
+
+```ts
+export default interface ToDo {
+  id: number;
+  name: string;
+  isDone: boolean;
+}
+```
+
+This model represents a single Todo item.
+
+Create a service for API calls in `src/services/Todo.ts`:
+
+```ts
+import axios from "axios";
+const API_URL = import.meta.env.VITE_API_URL;
+
+class ToDoService {
+  http = axios.create({
+    baseURL: API_URL,
+  });
+
+  async getToDos() {
+    const response = await this.http.get("/todos");
+    return response.data;
+  }
+
+  async addToDo(name: string) {
+    const response = await this.http.post("/todos", {
+      name,
+    });
+    return response.data;
+  }
+
+  async updateToDo(id: number, name: string, isDone: boolean) {
+    const response = await this.http.put(`/todos/${id}`, {
+      name,
+      isDone,
+    });
+    return response.data;
+  }
+
+  async deleteToDo(id: number) {
+    const response = await this.http.delete(`/todos/${id}`);
+    return response.data;
+  }
+}
+
+export default new ToDoService();
+```
+
+This service handles all HTTP requests to the backend.
+
+## Creating Components
+
+Develop the application UI within the `src/components` directory.
+
+Create a new file `ToDoList.tsx` with the following content:
+
+```ts
+import { Checkbox, List, ListItem, ListItemText } from "@mui/material";
+import ToDo from "../models/ToDo";
+import ToDoService from "../services/ToDo";
+import IconButton from "@mui/material/IconButton";
+import DeleteIcon from "@mui/icons-material/Delete";
+
+interface ToDoListProps {
+  toDos: ToDo[];
+  onLoadToDos: () => void;
+}
+
+export default function ToDoList({ toDos, onLoadToDos }: ToDoListProps) {
+  const handleCheckTodo = (toDo: ToDo) => async () => {
+    await ToDoService.updateToDo(toDo.id, toDo.name, !toDo.isDone);
+    onLoadToDos(); // Reload the toDos state from the server
+  };
+
+  const handleRemoveTodo = (toDo: ToDo) => async () => {
+    await ToDoService.deleteToDo(toDo.id);
+    onLoadToDos();
+  };
+
+  return (
+    <List
+      dense
+      sx={{
+        alignContent: "center",
+      }}
+    >
+      {toDos.map((toDo) => {
+        return (
+          <ListItem
+            key={toDo.id}
+            secondaryAction={
+              <>
+                <Checkbox
+                  edge="end"
+                  onChange={handleCheckTodo(toDo)}
+                  checked={toDo.isDone == true}
+                />
+                <IconButton
+                  aria-label="delete"
+                  size="large"
+                  onClick={handleRemoveTodo(toDo)}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </>
+            }
+          >
+            <ListItemText>{toDo.name}</ListItemText>
+          </ListItem>
+        );
+      })}
+    </List>
+  );
+}
+```
+
+This component will display a list of Todo items. It will also allow users to mark a Todo item as done or delete it.
+
+Create a new file `NewToDo.tsx` with the following content:
+
+```ts
+import { Button, TextField } from "@mui/material";
+import { useState } from "react";
+import ToDoService from "../services/ToDo";
+
+interface NewToDoProps {
+  onLoadToDos: () => void;
+}
+
+export default function NewToDo({ onLoadToDos }: NewToDoProps) {
+  const [newToDoName, setNewToDoName] = useState<string>("");
+
+  const handleSubmitForm = async (e: React.FormEvent) => {
+    e.preventDefault(); // Prevent the default form submission
+    if (!newToDoName) return; // Prevent adding empty to-do
+    await ToDoService.addToDo(newToDoName);
+    setNewToDoName(""); // Clear the input field
+    onLoadToDos();
+  };
+
+  return (
+    <>
+      <form onSubmit={handleSubmitForm}>
+        <TextField
+          fullWidth
+          label="New To-Do"
+          variant="outlined"
+          value={newToDoName}
+          onChange={(e) => setNewToDoName(e.target.value)}
+        />
+        <Button sx={{ marginTop: 1 }} type="submit" variant="contained">
+          Add
+        </Button>
+      </form>
+    </>
+  );
+}
+```
+
+This component will allow users to add new Todo items to the list.
+
+To wire up these components, we will create a new file `App.tsx` in the `src` directory. Vite scaffolding includes some default CSS, which we will replace with our own:
+
+```ts
+import "./App.css";
+import { useEffect, useState } from "react";
+import ToDo from "./models/ToDo";
+import ToDoList from "./components/ToDoList";
+import ToDoService from "./services/ToDo";
+import { Container, Grid } from "@mui/material";
+import NewToDo from "./components/NewToDo";
+
+function App() {
+  const [toDos, setToDos] = useState<ToDo[]>([]);
+
+  // Initialize the toDos state with the data from the server
+  useEffect(() => {
+    loadToDos();
+  }, []);
+
+  const loadToDos = async () => {
+    const data = await ToDoService.getToDos();
+    setToDos(data);
+  };
+
+  return (
+    <Container maxWidth="sm" sx={{ paddingTop: 2 }}>
+      <Grid
+        container
+        direction="row"
+        justifyContent="center"
+        alignItems="center"
+        spacing={2}
+      >
+        <Grid item xs={8}>
+          <NewToDo onLoadToDos={() => loadToDos()} />
+        </Grid>
+
+        <Grid item xs={8}>
+          <ToDoList toDos={toDos} onLoadToDos={() => loadToDos()} />
+        </Grid>
+      </Grid>
+    </Container>
+  );
+}
+
+export default App;
+```
+
+Before we start the application, we need to create a `.env` file in the root of the project with the following content:
+
+```bash
+VITE_API_URL=http://localhost:5277/api
+VITE_PORT=5173
+```
+
+This file will contain the URL of the backend API and the port on which the frontend will run.
+
+## Running the Application
+
+Before we start the application, we need to start the backend server created in the [previous article](https://www.plaincoding.dev/posts/aspnet-core-8-api-todo-list). 
+
+Now we can start the frontend application by running the following command:
+
+```bash
+npm run dev # Start the project in developer mode
+```
+
+## Dockerizing the Application
+
+Docker is a powerful tool for packaging applications and their dependencies into containers, which can be run on any system that has Docker installed. By containerizing your application, you can ensure that it runs consistently across different environments, making it easier to deploy and manage.
+
+Once you've thoroughly tested your application and confirmed that it functions as expected, the next step is to prepare it for deployment using Docker. This process involves creating a Docker image that encapsulates your application and its environment.
+
+Start by creating a Dockerfile in the root of your project. This file contains the instructions for building the Docker image. Add the following content to your Dockerfile:
+
+```yaml
+FROM node:20.11 as build-stage
+WORKDIR /app
+COPY package*.json /app/
+RUN npm install
+COPY . /app/
+
+RUN npm run build
+
+FROM nginx:stable-alpine
+WORKDIR /usr/share/nginx/html
+RUN rm -rf ./*
+COPY --from=build-stage /app/dist/ .
+
+# Copy the custom Nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 5173
+
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+Open your terminal and navigate to the directory containing your Dockerfile. Build the Docker image with the following command:
+
+```bash
+docker build -t react-18-todo-list .
+```
+
+This command tags the built image with a name so it can be easily referenced later.
+
+After the image is built, you can run it as a container. Execute the following command to start the container:
+
+```bash
+docker run --rm -it -p 5173:5173 react-18-todo-list
+```
+
+This command sets up the container to remove itself after stopping (--rm) and maps port 5173 from your local machine to the container, ensuring you can access the application as if it were running locally.
+
+Your application is now running inside a Docker container and can be accessed through your browser at `http://localhost:5173`.
+
+## Conclusion
+
+In this tutorial, we learned how to create a simple Todo List web application using React 18 and TypeScript. We covered the basics of setting up a new React project, installing dependencies, creating models and services, and building components to display and manage Todo items.
+
+If you found this tutorial helpful, feel free to share it with others who might benefit from it! And as always, leave comments or questions below if you need further assistance or have suggestions!
